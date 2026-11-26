@@ -7,9 +7,15 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#07060d",
+    "scheme": "nightrep",
     "ios": {
+      "bundleIdentifier": "com.nightrep.app",
+      "buildNumber": "1",
       "supportsTablet": true,
-      "bundleIdentifier": "app.nightrep.checklist"
+      "icon": "./assets/icon.png",
+      "infoPlist": {
+        "CFBundleDisplayName": "Night Rep"
+      }
     },
     "android": {
       "package": "app.nightrep.checklist",
@@ -25,7 +31,16 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#07060d",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "imageWidth": 220
+        }
+      ]
     ]
   }
 }
