@@ -2,6 +2,7 @@
   "expo": {
     "name": "Night Rep",
     "slug": "night-rep",
+    "owner": "k0-endurance",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -41,6 +42,11 @@
           "imageWidth": 220
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "655fe849-94f0-4bea-82ec-cc9546536109"
+      }
+    }
   }
 }
