@@ -6,34 +6,31 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from "react-native-
 import { BarlowCondensed_700Bold, BarlowCondensed_800ExtraBold } from "@expo-google-fonts/barlow-condensed";
 import { Outfit_400Regular, Outfit_600SemiBold } from "@expo-google-fonts/outfit";
 import { Composer } from "./components/Composer";
-import { IconBoard, IconDone, IconFlame, IconHome, IconPlus, IconRank, IconTracks } from "./components/Icons";
+import { IconBoard, IconDone, IconFlame, IconPlus, IconRank, IconTracks } from "./components/Icons";
 import { ConfirmDialog, LevelUpOverlay, ToastBar } from "./components/Overlays";
 import { circuitTarget, padLevel } from "./game";
 import { DoneScreen } from "./screens/DoneScreen";
 import { HomeScreen } from "./screens/HomeScreen";
-import { MissionsScreen } from "./screens/MissionsScreen";
 import { RankScreen } from "./screens/RankScreen";
 import { TracksScreen } from "./screens/TracksScreen";
 import { StoreProvider, useStore } from "./store";
 import { colors, fonts } from "./theme";
 import type { MissionDraft, Preset, TrackId } from "./types";
 
-type Tab = "home" | "board" | "tracks" | "done" | "rank";
+type Tab = "home" | "tracks" | "done" | "rank";
 type Filter = TrackId | "all";
 type ComposerState = { mode: "create"; track: TrackId } | { mode: "edit"; id: string };
 type ConfirmState = "reset" | "clear";
 
 const NAV: Array<{ id: Tab; label: string }> = [
-  { id: "home", label: "Home" },
-  { id: "board", label: "Board" },
+  { id: "home", label: "List" },
   { id: "tracks", label: "Tracks" },
-  { id: "done", label: "Done" },
+  { id: "done", label: "Cleared" },
   { id: "rank", label: "Rank" },
 ];
 
 function NavIcon({ id, color }: { id: Tab; color: string }) {
-  if (id === "home") return <IconHome color={color} />;
-  if (id === "board") return <IconBoard color={color} />;
+  if (id === "home") return <IconBoard color={color} />;
   if (id === "tracks") return <IconTracks color={color} />;
   if (id === "done") return <IconDone color={color} />;
   return <IconRank color={color} />;
@@ -127,7 +124,7 @@ function NightRep() {
           </View>
           <View>
             <Text style={styles.name}>Night Rep</Text>
-            <Text style={styles.sub}>Real life, ranked</Text>
+            <Text style={styles.sub}>Lv {padLevel(store.level.level)} · {store.readyCount} open</Text>
           </View>
         </Pressable>
         <Pressable
@@ -143,36 +140,26 @@ function NightRep() {
 
       {store.toast && !store.levelUp ? <ToastBar toast={store.toast} onUndo={store.undo} /> : null}
 
+      {tab === "home" ? (
+        <HomeScreen
+          filter={filter}
+          popping={popping}
+          onFilter={setFilter}
+          onToggle={onToggle}
+          onEdit={openEdit}
+          onDelete={store.deleteMission}
+          onCreate={() => openCreate()}
+          onCircuit={onCircuit}
+          onClearSamples={() => setConfirm("clear")}
+        />
+      ) : (
       <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {tab === "home" ? (
-          <HomeScreen
-            popping={popping}
-            onToggle={onToggle}
-            onEdit={openEdit}
-            onDelete={store.deleteMission}
-            onCreate={() => openCreate("fitness")}
-            onOpenBoard={() => setTab("board")}
-            onCircuit={onCircuit}
-            onClearSamples={() => setConfirm("clear")}
-          />
-        ) : null}
-        {tab === "board" ? (
-          <MissionsScreen
-            filter={filter}
-            popping={popping}
-            onFilter={setFilter}
-            onToggle={onToggle}
-            onEdit={openEdit}
-            onDelete={store.deleteMission}
-            onCreate={() => openCreate()}
-          />
-        ) : null}
         {tab === "tracks" ? (
           <TracksScreen
             onCircuit={onCircuit}
             onOpenTrack={(track) => {
               setFilter(track);
-              setTab("board");
+              setTab("home");
             }}
           />
         ) : null}
@@ -181,8 +168,9 @@ function NightRep() {
         ) : null}
         {tab === "rank" ? <RankScreen onClearSamples={() => setConfirm("clear")} onReset={() => setConfirm("reset")} /> : null}
       </ScrollView>
+      )}
 
-      {tab === "board" ? (
+      {tab === "home" ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="New mission"
@@ -279,7 +267,12 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.bg },
-  phone: { flex: 1, backgroundColor: colors.phone },
+  phone: {
+    flex: 1,
+    backgroundColor: colors.phone,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(94,242,224,0.35)",
+  },
   boot: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" },
   bootMark: {
     width: 64,

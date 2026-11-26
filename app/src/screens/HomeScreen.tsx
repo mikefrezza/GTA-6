@@ -1,89 +1,95 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { FitnessCircuit } from "../components/FitnessCircuit";
 import { MissionCard } from "../components/MissionCard";
-import { Ring, XpBar } from "../components/Ring";
-import { formatXp, padLevel, sortMissions } from "../game";
+import { TRACKS } from "../content";
+import { sortMissions } from "../game";
 import { useStore } from "../store";
 import { colors, fonts } from "../theme";
-import type { Preset } from "../types";
+import type { Preset, TrackId } from "../types";
+
+type Filter = TrackId | "all";
 
 type Props = {
+  filter: Filter;
   popping: string[];
+  onFilter: (filter: Filter) => void;
   onToggle: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onCreate: () => void;
-  onOpenBoard: () => void;
   onCircuit: (preset: Preset) => void;
   onClearSamples: () => void;
 };
 
-export function HomeScreen({ popping, onToggle, onEdit, onDelete, onCreate, onOpenBoard, onCircuit, onClearSamples }: Props) {
+export function HomeScreen({
+  filter,
+  popping,
+  onFilter,
+  onToggle,
+  onEdit,
+  onDelete,
+  onCreate,
+  onCircuit,
+  onClearSamples,
+}: Props) {
   const store = useStore();
-  const ready = sortMissions(store.missions, "ready").slice(0, 4);
-  const percent = store.missions.length === 0 ? 0 : Math.round((store.doneCount / store.missions.length) * 100);
-  const streakCopy =
-    store.streak === 0
-      ? "Clear one mission and the streak starts."
-      : store.clearedToday > 0
-        ? "Streak is secured for today."
-        : "Streak is live. Clear one tonight to keep it.";
+  const scoped = store.missions.filter((mission) => filter === "all" || mission.track === filter);
+  const open = sortMissions(scoped, "ready");
+  const cleared = scoped.filter((mission) => mission.status === "done").length;
+  const payoutLeft = open.reduce((sum, mission) => sum + mission.xp, 0);
+  const ratio = scoped.length === 0 ? 0 : cleared / scoped.length;
+  const track = filter === "all" ? null : TRACKS.find((item) => item.id === filter) ?? null;
+  const tint = track?.tint ?? colors.cyan;
+  const title = track?.label ?? "All objectives";
 
   return (
     <View style={styles.screen}>
-      <View style={styles.hero}>
-        <Text style={styles.kicker}>Current rank</Text>
-        <Ring ratio={store.level.ratio} label={`Level ${store.level.level}, ${store.level.into} of ${store.level.need} XP`}>
-          <Text style={styles.ringCaption}>Lvl</Text>
-          <Text style={styles.ringLevel}>{padLevel(store.level.level)}</Text>
-        </Ring>
-        <Text style={styles.rank}>{store.rank.name}</Text>
-        <Text style={styles.line}>{store.rank.line}</Text>
-        <XpBar into={store.level.into} need={store.level.need} ratio={store.level.ratio} />
-        <Text style={styles.next}>
-          {store.next ? `${store.next.levelsAway} ${store.next.levelsAway === 1 ? "level" : "levels"} to ${store.next.name}` : "Top rank"}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+        <TabChip label="All" count={store.readyCount} pressed={filter === "all"} tint={colors.cyan} onPress={() => onFilter("all")} />
+        {TRACKS.map((item) => (
+          <TabChip
+            key={item.id}
+            label={item.label}
+            count={store.missions.filter((mission) => mission.status === "ready" && mission.track === item.id).length}
+            pressed={filter === item.id}
+            tint={item.tint}
+            onPress={() => onFilter(item.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <View style={styles.progress}>
+        <View style={styles.progressHead}>
+          <Text style={styles.progressTitle}>{title}</Text>
+          <Text style={[styles.progressMeta, { color: tint }]}>{Math.round(ratio * 100)}%</Text>
+        </View>
+        <View style={styles.bar} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(ratio * 100) }}>
+          <View style={[styles.barFill, { width: `${Math.round(ratio * 100)}%`, backgroundColor: tint }]} />
+        </View>
+        <Text style={styles.progressNote}>
+          {open.length} open · {cleared} cleared · {payoutLeft} XP still on the board
         </Text>
-        <View style={styles.stats}>
-          <Stat value={String(store.streak)} label="day streak" />
-          <Stat value={String(store.clearedToday)} label="cleared today" />
-          <Stat value={`${percent}%`} label="complete" />
-        </View>
-        <Text style={styles.note}>{streakCopy}</Text>
       </View>
 
-      <View style={styles.head}>
-        <Text style={styles.headTitle}>Fitness circuit</Text>
-        <Text style={styles.meta}>{formatXp(store.xp)} XP total</Text>
-      </View>
-      <View style={styles.panel}>
-        <FitnessCircuit onPress={onCircuit} />
-        <Text style={styles.panelNote}>Same missions as the board. Tap a rep to clear it.</Text>
-      </View>
-
-      {store.sampleCount > 0 ? (
-        <View style={styles.banner}>
-          <Text style={styles.bannerText}>
-            <Text style={styles.bannerStrong}>Sample board. </Text>
-            These missions are marked Sample so the first night is not blank. Clear them when the list should be only yours.
-          </Text>
-          <Pressable accessibilityRole="button" onPress={onClearSamples} style={styles.textBtn}>
-            <Text style={styles.textBtnLabel}>Clear samples</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
-      <View style={styles.head}>
-        <Text style={styles.headTitle}>Up tonight</Text>
-        {store.readyCount > 0 ? (
-          <Pressable accessibilityRole="button" onPress={onOpenBoard}>
-            <Text style={styles.textBtnLabel}>Full board</Text>
-          </Pressable>
+      <ScrollView style={styles.listScroll} contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+        {store.sampleCount > 0 && filter === "all" ? (
+          <View style={styles.banner}>
+            <Text style={styles.bannerText}>Sample objectives are on the board so the first night is not empty.</Text>
+            <Pressable accessibilityRole="button" onPress={onClearSamples}>
+              <Text style={styles.bannerAction}>Clear samples</Text>
+            </Pressable>
+          </View>
         ) : null}
-      </View>
 
-      {ready.length > 0 ? (
-        <View style={styles.list}>
-          {ready.map((mission) => (
+        {filter === "fitness" ? (
+          <View style={styles.circuit}>
+            <Text style={styles.circuitLabel}>Fitness circuit</Text>
+            <FitnessCircuit onPress={onCircuit} />
+          </View>
+        ) : null}
+
+        {open.length > 0 ? (
+          open.map((mission) => (
             <MissionCard
               key={mission.id}
               mission={mission}
@@ -92,30 +98,49 @@ export function HomeScreen({ popping, onToggle, onEdit, onDelete, onCreate, onOp
               onEdit={onEdit}
               onDelete={onDelete}
             />
-          ))}
-        </View>
-      ) : (
-        <Empty
-          title={store.missions.length === 0 ? "The board is dark" : "Board clear"}
-          body={
-            store.missions.length === 0
-              ? "Queue a mission, clear it, and the rank starts moving."
-              : "Every mission is checked. Queue another lap."
-          }
-          action="New mission"
-          onPress={onCreate}
-        />
-      )}
+          ))
+        ) : (
+          <Empty
+            title={scoped.length === 0 ? "No objectives" : "Board clear"}
+            body={
+              scoped.length === 0
+                ? `Nothing queued on ${title}. Add one, with a payout, and check it off when it is done.`
+                : "Every objective here is checked. Queue another."
+            }
+            action="New objective"
+            onPress={onCreate}
+          />
+        )}
+      </ScrollView>
     </View>
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
+function TabChip({
+  label,
+  count,
+  pressed,
+  tint,
+  onPress,
+}: {
+  label: string;
+  count: number;
+  pressed: boolean;
+  tint: string;
+  onPress: () => void;
+}) {
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: pressed }}
+      onPress={onPress}
+      style={[styles.tab, pressed ? { borderColor: tint, backgroundColor: "rgba(255,255,255,0.04)" } : null]}
+    >
+      <Text style={[styles.tabText, pressed ? { color: tint } : null]} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={[styles.tabCount, pressed ? { color: tint } : null]}>{count}</Text>
+    </Pressable>
   );
 }
 
@@ -123,7 +148,7 @@ export function Empty({ title, body, action, onPress }: { title: string; body: s
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.line}>{body}</Text>
+      <Text style={styles.emptyBody}>{body}</Text>
       <Pressable accessibilityRole="button" onPress={onPress} style={styles.primary}>
         <Text style={styles.primaryText}>{action}</Text>
       </Pressable>
@@ -132,40 +157,54 @@ export function Empty({ title, body, action, onPress }: { title: string; body: s
 }
 
 const styles = StyleSheet.create({
-  screen: { paddingHorizontal: 18, paddingBottom: 28 },
-  hero: {
+  screen: { flex: 1 },
+  tabs: { gap: 8, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+  tab: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    borderRadius: 26,
-    backgroundColor: colors.card,
+    gap: 6,
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "rgba(255,77,147,0.45)",
+    borderColor: colors.line,
+    maxWidth: 210,
   },
-  kicker: { color: colors.dim, fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", marginBottom: 10 },
-  ringCaption: { color: colors.dim, fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 1.4, textTransform: "uppercase" },
-  ringLevel: { color: colors.ink, fontFamily: fonts.display, fontSize: 42, lineHeight: 44 },
-  rank: { marginTop: 8, color: colors.ink, fontFamily: fonts.display, fontSize: 36, textTransform: "uppercase", textAlign: "center" },
-  line: { marginTop: 6, color: colors.muted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20, textAlign: "center" },
-  next: { marginTop: 8, color: colors.gold, fontFamily: fonts.bodySemi, fontSize: 13 },
-  stats: { marginTop: 14, flexDirection: "row", gap: 8, alignSelf: "stretch" },
-  stat: { flex: 1, alignItems: "center" },
-  statValue: { color: colors.ink, fontFamily: fonts.display, fontSize: 28 },
-  statLabel: { color: colors.dim, fontFamily: fonts.body, fontSize: 11, textAlign: "center" },
-  note: { marginTop: 10, color: colors.muted, fontFamily: fonts.body, fontSize: 13, textAlign: "center" },
-  head: { marginTop: 22, marginBottom: 10, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
-  headTitle: { color: colors.ink, fontFamily: fonts.display, fontSize: 28, textTransform: "uppercase" },
-  meta: { color: colors.dim, fontFamily: fonts.body, fontSize: 12 },
-  panel: { borderRadius: 22, padding: 12, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, gap: 10 },
-  panelNote: { color: colors.muted, fontFamily: fonts.body, fontSize: 13 },
-  banner: { marginTop: 14, padding: 14, borderRadius: 18, backgroundColor: "rgba(255,200,87,0.08)", borderWidth: 1, borderColor: "rgba(255,200,87,0.28)" },
-  bannerText: { color: colors.muted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
-  bannerStrong: { color: colors.ink, fontFamily: fonts.bodySemi },
-  textBtn: { marginTop: 8, alignSelf: "flex-start", minHeight: 36, justifyContent: "center" },
-  textBtnLabel: { color: colors.cyan, fontFamily: fonts.bodySemi, fontSize: 14 },
-  list: { gap: 10 },
-  empty: { alignItems: "flex-start", paddingVertical: 8 },
+  tabText: { color: colors.muted, fontFamily: fonts.bodySemi, fontSize: 13 },
+  tabCount: { color: colors.dim, fontFamily: fonts.body, fontSize: 12 },
+  progress: { paddingHorizontal: 16, paddingBottom: 8 },
+  progressHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
+  progressTitle: { color: colors.ink, fontFamily: fonts.display, fontSize: 28, textTransform: "uppercase" },
+  progressMeta: { fontFamily: fonts.displayMid, fontSize: 22 },
+  bar: { marginTop: 8, height: 6, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.08)", overflow: "hidden" },
+  barFill: { height: "100%" },
+  progressNote: { marginTop: 6, color: colors.muted, fontFamily: fonts.body, fontSize: 12 },
+  listScroll: { flex: 1 },
+  list: { paddingHorizontal: 16, paddingBottom: 96, gap: 8 },
+  banner: {
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,200,87,0.28)",
+    backgroundColor: "rgba(255,200,87,0.08)",
+    gap: 6,
+  },
+  bannerText: { color: colors.muted, fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
+  bannerAction: { color: colors.cyan, fontFamily: fonts.bodySemi, fontSize: 13 },
+  circuit: { padding: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, gap: 8 },
+  circuitLabel: { color: colors.dim, fontFamily: fonts.bodySemi, fontSize: 11, letterSpacing: 1.2, textTransform: "uppercase" },
+  empty: { paddingVertical: 12 },
   emptyTitle: { color: colors.ink, fontFamily: fonts.display, fontSize: 32, textTransform: "uppercase" },
-  primary: { marginTop: 12, minHeight: 48, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.magenta, alignItems: "center", justifyContent: "center" },
+  emptyBody: { marginTop: 6, color: colors.muted, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
+  primary: {
+    marginTop: 12,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: colors.magenta,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+  },
   primaryText: { color: "#1a0b10", fontFamily: fonts.bodySemi, fontSize: 16 },
 });
