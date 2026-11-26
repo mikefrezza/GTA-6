@@ -15,7 +15,8 @@
       "supportsTablet": true,
       "icon": "./assets/icon.png",
       "infoPlist": {
-        "CFBundleDisplayName": "Night Rep"
+        "CFBundleDisplayName": "Night Rep",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
