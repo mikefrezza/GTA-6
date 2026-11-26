@@ -39,6 +39,7 @@ type State = {
 };
 
 type Action =
+  | { type: "hydrate"; missions: Mission[]; bestStreak: number }
   | { type: "toggle"; id: string; now: number }
   | { type: "add"; draft: MissionDraft; now: number }
   | { type: "update"; id: string; draft: MissionDraft }
@@ -91,6 +92,15 @@ function commit(state: State, missions: Mission[], message: string, celebrate: b
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
+    case "hydrate":
+      return {
+        ...state,
+        missions: action.missions,
+        bestStreak: Math.max(action.bestStreak, currentStreak(action.missions)),
+        undo: null,
+        toast: null,
+        levelUp: null,
+      };
     case "toggle": {
       const mission = state.missions.find((item) => item.id === action.id);
       if (!mission) return state;
@@ -195,13 +205,11 @@ function reducer(state: State, action: Action): State {
 }
 
 function boot(): State {
-  const loaded = loadState();
-  const missions = loaded?.missions ?? createStarters();
-  const bestStreak = Math.max(loaded?.bestStreak ?? 0, currentStreak(missions));
-  return { missions, bestStreak, undo: null, toast: null, levelUp: null, toastSeq: 0 };
+  return { missions: createStarters(), bestStreak: 0, undo: null, toast: null, levelUp: null, toastSeq: 0 };
 }
 
 type StoreValue = {
+  ready: boolean;
   missions: Mission[];
   bestStreak: number;
   toast: Toast | null;
@@ -233,28 +241,44 @@ const StoreContext = createContext<StoreValue | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, boot);
   const [now, setNow] = useState(() => Date.now());
+  const [ready, setReady] = useState(false);
   const warned = useRef(false);
+  const canSave = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+    loadState().then((loaded) => {
+      if (cancelled) return;
+      if (loaded) {
+        dispatch({ type: "hydrate", missions: loaded.missions, bestStreak: loaded.bestStreak });
+      }
+      canSave.current = true;
+      setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !canSave.current) return;
     const payload: Persisted = { version: 1, missions: state.missions, bestStreak: state.bestStreak };
-    const ok = saveState(payload);
-    if (!ok && !warned.current) {
-      warned.current = true;
-      dispatch({ type: "toast", text: "This browser is not storing progress." });
-    }
-  }, [state.missions, state.bestStreak, warned]);
+    saveState(payload).then((ok) => {
+      if (!ok && !warned.current) {
+        warned.current = true;
+        dispatch({ type: "toast", text: "This phone is not storing progress." });
+      }
+    });
+  }, [ready, state.missions, state.bestStreak]);
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
-    return () => window.clearInterval(id);
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
   }, []);
 
   const toggle = useCallback((id: string) => dispatch({ type: "toggle", id, now: Date.now() }), []);
   const addMission = useCallback((draft: MissionDraft) => dispatch({ type: "add", draft, now: Date.now() }), []);
-  const updateMission = useCallback(
-    (id: string, draft: MissionDraft) => dispatch({ type: "update", id, draft }),
-    [],
-  );
+  const updateMission = useCallback((id: string, draft: MissionDraft) => dispatch({ type: "update", id, draft }), []);
   const deleteMission = useCallback((id: string) => dispatch({ type: "delete", id }), []);
   const clearStarters = useCallback(() => dispatch({ type: "clear-starters" }), []);
   const reset = useCallback(() => dispatch({ type: "reset" }), []);
@@ -268,6 +292,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const doneCount = state.missions.filter((mission) => mission.status === "done").length;
 
   const value: StoreValue = {
+    ready,
     missions: state.missions,
     bestStreak: state.bestStreak,
     toast: state.toast,

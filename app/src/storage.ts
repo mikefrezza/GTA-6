@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clampXp } from "./game";
 import type { Mission, MissionStatus, TrackId } from "./types";
 
@@ -36,9 +37,9 @@ function sanitizeMission(input: unknown): Mission | null {
   };
 }
 
-export function loadState(): Persisted | null {
+export async function loadState(): Promise<Persisted | null> {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<Persisted>;
     if (parsed.version !== 1 || !Array.isArray(parsed.missions)) return null;
@@ -57,9 +58,9 @@ export function loadState(): Persisted | null {
   }
 }
 
-export function saveState(data: Persisted): boolean {
+export async function saveState(data: Persisted): Promise<boolean> {
   try {
-    localStorage.setItem(KEY, JSON.stringify(data));
+    await AsyncStorage.setItem(KEY, JSON.stringify(data));
     return true;
   } catch {
     return false;

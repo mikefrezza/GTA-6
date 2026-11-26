@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Night Rep",
+    "slug": "night-rep",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#07060d",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.nightrep.checklist"
+    },
+    "android": {
+      "package": "app.nightrep.checklist",
+      "adaptiveIcon": {
+        "backgroundColor": "#07060d",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}

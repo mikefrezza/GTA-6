@@ -1,5 +1,8 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import { formatXp } from "../game";
+import { colors, fonts } from "../theme";
 
 type Props = {
   ratio: number;
@@ -10,86 +13,78 @@ type Props = {
 };
 
 export function Ring({ ratio, size = 136, stroke = 10, label, children }: Props) {
-  const rawId = useId().replace(/:/g, "");
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.min(1, Math.max(0, ratio));
   const offset = circumference * (1 - clamped);
-  const prev = useRef(clamped);
-  const [smooth, setSmooth] = useState(true);
-
-  useEffect(() => {
-    if (clamped + 0.001 < prev.current) {
-      setSmooth(false);
-      const frame = requestAnimationFrame(() => setSmooth(true));
-      prev.current = clamped;
-      return () => cancelAnimationFrame(frame);
-    }
-    prev.current = clamped;
-  }, [clamped]);
+  const gradientId = `ring-${size}`;
 
   return (
-    <div className="ring" style={{ width: size, height: size }} role="img" aria-label={label}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <defs>
-          <linearGradient id={rawId} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ff4d93" />
-            <stop offset="52%" stopColor="#ffc857" />
-            <stop offset="100%" stopColor="#5ef2e0" />
-          </linearGradient>
-        </defs>
-        <circle
+    <View style={{ width: size, height: size }} accessibilityRole="image" accessibilityLabel={label}>
+      <Svg width={size} height={size}>
+        <Defs>
+          <LinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#ff4d93" />
+            <Stop offset="52%" stopColor="#ffc857" />
+            <Stop offset="100%" stopColor="#5ef2e0" />
+          </LinearGradient>
+        </Defs>
+        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.08)" strokeWidth={stroke} fill="none" />
+        <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke={`url(#${gradientId})`}
           strokeWidth={stroke}
-        />
-        <circle
-          className={smooth ? "ring-value" : "ring-value instant"}
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
           fill="none"
-          stroke={`url(#${rawId})`}
-          strokeWidth={stroke}
           strokeLinecap="round"
-          strokeDasharray={circumference}
+          strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={offset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          rotation={-90}
+          origin={`${size / 2}, ${size / 2}`}
         />
-      </svg>
-      <div className="ring-center">{children}</div>
-    </div>
+      </Svg>
+      <View style={styles.center}>{children}</View>
+    </View>
   );
 }
 
 export function XpBar({ into, need, ratio }: { into: number; need: number; ratio: number }) {
-  const prev = useRef(ratio);
-  const [smooth, setSmooth] = useState(true);
-
-  useEffect(() => {
-    if (ratio + 0.001 < prev.current) {
-      setSmooth(false);
-      const frame = requestAnimationFrame(() => setSmooth(true));
-      prev.current = ratio;
-      return () => cancelAnimationFrame(frame);
-    }
-    prev.current = ratio;
-  }, [ratio]);
-
+  const width = `${Math.min(100, Math.max(0, ratio * 100))}%` as const;
   return (
-    <div className="xpbar">
-      <div className="xpbar-track" role="meter" aria-valuemin={0} aria-valuemax={need} aria-valuenow={into} aria-label="XP to next level">
-        <div className={smooth ? "xpbar-fill" : "xpbar-fill instant"} style={{ width: `${ratio * 100}%` }} />
-      </div>
-      <div className="xpbar-meta">
-        <span>
+    <View style={styles.xpbar}>
+      <View
+        style={styles.track}
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 0, max: need, now: into }}
+        accessibilityLabel="XP to next level"
+      >
+        <View style={[styles.fill, { width }]} />
+      </View>
+      <View style={styles.meta}>
+        <Text style={styles.metaText}>
           {formatXp(into)} / {formatXp(need)} XP
-        </span>
-        <span>to next level</span>
-      </div>
-    </div>
+        </Text>
+        <Text style={styles.metaText}>to next level</Text>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  xpbar: { width: "100%", marginTop: 12 },
+  track: {
+    height: 8,
+    borderRadius: 99,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    overflow: "hidden",
+  },
+  fill: { height: "100%", borderRadius: 99, backgroundColor: colors.magenta },
+  meta: { marginTop: 6, flexDirection: "row", justifyContent: "space-between" },
+  metaText: { color: colors.dim, fontFamily: fonts.body, fontSize: 12 },
+});
