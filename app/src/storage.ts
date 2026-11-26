@@ -4,12 +4,13 @@ import type { Mission, MissionStatus, TrackId } from "./types";
 
 const KEY = "night-rep.v1";
 
-const TRACKS: TrackId[] = ["fitness", "health", "work", "money", "social", "skills"];
+const TRACKS: TrackId[] = ["fitness", "partner", "health", "work", "money", "social", "skills"];
 
 export type Persisted = {
   version: 1;
   missions: Mission[];
   bestStreak: number;
+  partnerSeeded?: boolean;
 };
 
 function isTrack(value: unknown): value is TrackId {
@@ -52,7 +53,12 @@ export async function loadState(): Promise<Persisted | null> {
       missions.push(mission);
     }
     const best = Number(parsed.bestStreak);
-    return { version: 1, missions, bestStreak: Number.isFinite(best) && best > 0 ? Math.floor(best) : 0 };
+    return {
+      version: 1,
+      missions,
+      bestStreak: Number.isFinite(best) && best > 0 ? Math.floor(best) : 0,
+      partnerSeeded: parsed.partnerSeeded === true,
+    };
   } catch {
     return null;
   }

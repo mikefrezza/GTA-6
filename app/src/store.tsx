@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState, type ReactNode } from "react";
-import { createStarters } from "./content";
+import { createStarters, withPartnerStarters } from "./content";
 import {
   clearedOn,
   clampXp,
@@ -40,6 +40,7 @@ type State = {
 
 type Action =
   | { type: "hydrate"; missions: Mission[]; bestStreak: number }
+  | { type: "seed-partner" }
   | { type: "toggle"; id: string; now: number }
   | { type: "add"; draft: MissionDraft; now: number }
   | { type: "update"; id: string; draft: MissionDraft }
@@ -101,6 +102,8 @@ function reducer(state: State, action: Action): State {
         toast: null,
         levelUp: null,
       };
+    case "seed-partner":
+      return { ...state, missions: withPartnerStarters(state.missions) };
     case "toggle": {
       const mission = state.missions.find((item) => item.id === action.id);
       if (!mission) return state;
@@ -244,13 +247,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const warned = useRef(false);
   const canSave = useRef(false);
+  const partnerSeeded = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     loadState().then((loaded) => {
       if (cancelled) return;
       if (loaded) {
-        dispatch({ type: "hydrate", missions: loaded.missions, bestStreak: loaded.bestStreak });
+        const missions = loaded.partnerSeeded ? loaded.missions : withPartnerStarters(loaded.missions);
+        partnerSeeded.current = true;
+        dispatch({ type: "hydrate", missions, bestStreak: loaded.bestStreak });
+      } else {
+        partnerSeeded.current = true;
       }
       canSave.current = true;
       setReady(true);
@@ -261,8 +269,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!ready || partnerSeeded.current) return;
+    partnerSeeded.current = true;
+    dispatch({ type: "seed-partner" });
+  }, [ready]);
+
+  useEffect(() => {
     if (!ready || !canSave.current) return;
-    const payload: Persisted = { version: 1, missions: state.missions, bestStreak: state.bestStreak };
+    const payload: Persisted = {
+      version: 1,
+      missions: state.missions,
+      bestStreak: state.bestStreak,
+      partnerSeeded: partnerSeeded.current,
+    };
     saveState(payload).then((ok) => {
       if (!ok && !warned.current) {
         warned.current = true;

@@ -20,9 +20,9 @@ export function TracksScreen({ onOpenTrack, onCircuit }: Props) {
 
   return (
     <View style={styles.screen}>
-      <Text style={styles.kicker}>Six lanes</Text>
+      <Text style={styles.kicker}>Seven lanes</Text>
       <Text style={styles.title}>Tracks</Text>
-      <Text style={styles.lede}>Fitness sits on the same board as the rest of your life. Clear it, or write your own.</Text>
+      <Text style={styles.lede}>Fitness stays up top. Significant Other sits with the rest of your life. Clear an objective, or write your own.</Text>
 
       <View style={[styles.fitness, { borderColor: fitness.tint }]}>
         <Pressable accessibilityRole="button" onPress={() => onOpenTrack("fitness")} style={styles.row}>

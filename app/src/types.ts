@@ -1,4 +1,4 @@
-export type TrackId = "fitness" | "health" | "work" | "money" | "social" | "skills";
+export type TrackId = "fitness" | "partner" | "health" | "work" | "money" | "social" | "skills";
 
 export type MissionStatus = "ready" | "done";
 

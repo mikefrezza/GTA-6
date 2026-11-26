@@ -167,6 +167,12 @@ export function TrackIcon({ id, size = 20, color = colors.ink }: { id: TrackId; 
           <Path d="M12 3.5 13.6 8H18l-3.6 2.8 1.4 4.5L12 12.6 8.2 15.3 9.6 10.8 6 8h4.4L12 3.5Z" {...ink} />
         </Svg>
       );
+    case "partner":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <Path d="M12 19.2s-6.4-3.9-6.4-8.2A3.5 3.5 0 0 1 12 8.4a3.5 3.5 0 0 1 6.4 2.6c0 4.3-6.4 8.2-6.4 8.2Z" {...ink} />
+        </Svg>
+      );
   }
 }
 

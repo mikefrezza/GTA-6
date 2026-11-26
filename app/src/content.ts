@@ -2,6 +2,7 @@ import type { Mission, Preset, TrackId, TrackMeta } from "./types";
 
 export const TRACKS: TrackMeta[] = [
   { id: "fitness", label: "Fitness", blurb: "Run, lift, swim, stretch, steps, sleep.", tint: "#5ef2e0" },
+  { id: "partner", label: "Significant Other", blurb: "Flowers, a date, dinner, a check-in, a small surprise.", tint: "#ff5cdb" },
   { id: "health", label: "Health", blurb: "Food, water, and the unglamorous basics.", tint: "#ff5fa2" },
   { id: "work", label: "Work", blurb: "Deep blocks and closed loops.", tint: "#ffc857" },
   { id: "money", label: "Money", blurb: "Spend logged. Cash pointed on purpose.", tint: "#ffb15a" },
@@ -11,11 +12,12 @@ export const TRACKS: TrackMeta[] = [
 
 export const TRACK_MAP: Record<TrackId, TrackMeta> = {
   fitness: TRACKS[0],
-  health: TRACKS[1],
-  work: TRACKS[2],
-  money: TRACKS[3],
-  social: TRACKS[4],
-  skills: TRACKS[5],
+  partner: TRACKS[1],
+  health: TRACKS[2],
+  work: TRACKS[3],
+  money: TRACKS[4],
+  social: TRACKS[5],
+  skills: TRACKS[6],
 };
 
 export const FITNESS_PRESETS: Preset[] = [
@@ -29,6 +31,13 @@ export const FITNESS_PRESETS: Preset[] = [
 
 export const SUGGESTIONS: Record<TrackId, Preset[]> = {
   fitness: FITNESS_PRESETS,
+  partner: [
+    { title: "Get flowers", short: "Flowers", note: "A bunch they would actually like.", xp: 40 },
+    { title: "Plan a date", short: "Date", note: "Pick a time and a place.", xp: 50 },
+    { title: "Cook dinner", short: "Dinner", note: "A meal at home, for both of you.", xp: 60 },
+    { title: "Send a check-in", short: "Check-in", note: "A real note in the middle of the day.", xp: 25 },
+    { title: "A small surprise", short: "Surprise", note: "Something small they did not ask for.", xp: 45 },
+  ],
   health: [
     { title: "Water block", short: "Water", note: "Eight glasses, spaced through the day", xp: 25 },
     { title: "Cook one real meal", short: "Cook", note: "Something you can name the ingredients for", xp: 40 },
@@ -69,6 +78,11 @@ const STARTER_PICKS: Array<{ track: TrackId; title: string }> = [
   { track: "work", title: "Close an open loop" },
   { track: "money", title: "Log today's spend" },
   { track: "social", title: "Message someone you miss" },
+  { track: "partner", title: "Get flowers" },
+  { track: "partner", title: "Plan a date" },
+  { track: "partner", title: "Cook dinner" },
+  { track: "partner", title: "Send a check-in" },
+  { track: "partner", title: "A small surprise" },
   { track: "skills", title: "Practice block" },
 ];
 
@@ -95,6 +109,12 @@ export function createStarters(): Mission[] {
       completedAt: null,
     };
   });
+}
+
+export function withPartnerStarters(missions: Mission[]): Mission[] {
+  if (missions.some((mission) => mission.track === "partner")) return missions;
+  const extras = createStarters().filter((mission) => mission.track === "partner");
+  return [...missions, ...extras];
 }
 
 export const XP_CHOICES = [30, 50, 80, 120, 200];

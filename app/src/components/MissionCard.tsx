@@ -16,7 +16,7 @@ type Props = {
 export function MissionCard({ mission, popping, showReopen = false, onToggle, onEdit, onDelete }: Props) {
   const track = TRACK_MAP[mission.track];
   const cleared = mission.status === "done" || popping;
-  const xpLabel = mission.status === "done" && !popping ? `${mission.xp} XP` : `+${mission.xp}`;
+  const status = cleared ? "Cleared" : "Open";
 
   return (
     <View style={[styles.card, { borderColor: track.tint }, cleared ? styles.done : null, popping ? styles.pop : null]}>
@@ -24,21 +24,24 @@ export function MissionCard({ mission, popping, showReopen = false, onToggle, on
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ selected: cleared }}
-        accessibilityLabel={cleared ? `Reopen ${mission.title}` : `Complete ${mission.title}`}
+        accessibilityLabel={cleared ? `Reopen ${mission.title}` : `Check off ${mission.title}`}
         onPress={() => onToggle(mission.id)}
         style={styles.check}
       >
         <CheckMark on={cleared} tint={track.tint} />
       </Pressable>
       <View style={styles.body}>
-        <View style={styles.row}>
-          <Text style={[styles.title, cleared ? styles.titleDone : null]}>{mission.title}</Text>
-          <Text style={[styles.xp, { color: track.tint }]}>{xpLabel}</Text>
-        </View>
-        <View style={styles.row}>
-          <View style={styles.meta}>
-            <Text style={[styles.track, { color: track.tint }]}>{track.label}</Text>
-            {mission.starter ? <Text style={styles.tag}>Sample</Text> : null}
+        <Text style={styles.kicker}>Objective</Text>
+        <Text style={[styles.title, cleared ? styles.titleDone : null]}>{mission.title}</Text>
+        {mission.note ? <Text style={styles.note}>{mission.note}</Text> : null}
+        <View style={styles.facts}>
+          <View style={styles.fact}>
+            <Text style={styles.kicker}>Payout</Text>
+            <Text style={[styles.xp, { color: track.tint }]}>{mission.xp} XP</Text>
+          </View>
+          <View style={styles.fact}>
+            <Text style={styles.kicker}>Status</Text>
+            <Text style={[styles.status, { color: cleared ? colors.gold : colors.cyan }]}>{status}</Text>
           </View>
           <View style={styles.actions}>
             <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${mission.title}`} onPress={() => onEdit(mission.id)} style={styles.iconBtn}>
@@ -49,7 +52,10 @@ export function MissionCard({ mission, popping, showReopen = false, onToggle, on
             </Pressable>
           </View>
         </View>
-        {mission.note ? <Text style={styles.note}>{mission.note}</Text> : null}
+        <View style={styles.meta}>
+          <Text style={[styles.track, { color: track.tint }]}>{track.label}</Text>
+          {mission.starter ? <Text style={styles.tag}>Sample</Text> : null}
+        </View>
         {showReopen && mission.status === "done" ? (
           <Pressable accessibilityRole="button" onPress={() => onToggle(mission.id)} style={styles.reopen}>
             <IconCheck size={14} color={colors.cyan} />
@@ -78,11 +84,14 @@ const styles = StyleSheet.create({
   rail: { position: "absolute", left: 0, top: 0, bottom: 0, width: 3 },
   check: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   body: { flex: 1, minWidth: 0 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  title: { flex: 1, color: colors.ink, fontFamily: fonts.bodySemi, fontSize: 16 },
+  kicker: { color: colors.dim, fontFamily: fonts.bodySemi, fontSize: 10, letterSpacing: 1.2, textTransform: "uppercase" },
+  title: { color: colors.ink, fontFamily: fonts.bodySemi, fontSize: 16, marginTop: 1 },
   titleDone: { textDecorationLine: "line-through", color: colors.muted },
+  facts: { marginTop: 8, flexDirection: "row", alignItems: "flex-end", gap: 14 },
+  fact: { minWidth: 72 },
   xp: { fontFamily: fonts.displayMid, fontSize: 18, letterSpacing: 0.4 },
-  meta: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1 },
+  status: { fontFamily: fonts.displayMid, fontSize: 18, letterSpacing: 0.4 },
+  meta: { marginTop: 6, flexDirection: "row", alignItems: "center", gap: 8 },
   track: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" },
   tag: {
     color: colors.dim,
@@ -95,7 +104,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     overflow: "hidden",
   },
-  actions: { flexDirection: "row" },
+  actions: { flexDirection: "row", marginLeft: "auto" },
   iconBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   note: { marginTop: 4, color: colors.muted, fontFamily: fonts.body, fontSize: 13, lineHeight: 18 },
   reopen: { marginTop: 6, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", minHeight: 32 },

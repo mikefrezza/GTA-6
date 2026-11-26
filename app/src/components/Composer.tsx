@@ -24,7 +24,7 @@ export function Composer({ initial, heading, submitLabel, onClose, onSubmit }: P
 
   function submit() {
     if (!title.trim()) {
-      setError("Give the mission a name.");
+      setError("Give the objective a short line.");
       return;
     }
     onSubmit({ title, track, xp: clampXp(xp), note });
@@ -43,11 +43,11 @@ export function Composer({ initial, heading, submitLabel, onClose, onSubmit }: P
             </Pressable>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.form}>
-            <Text style={styles.label}>Mission</Text>
+            <Text style={styles.label}>Objective</Text>
             <TextInput
               value={title}
               maxLength={64}
-              placeholder="Name the mission"
+              placeholder="Short objective line"
               placeholderTextColor={colors.dim}
               autoCorrect={false}
               onChangeText={(value) => {
@@ -100,7 +100,7 @@ export function Composer({ initial, heading, submitLabel, onClose, onSubmit }: P
               })}
             </View>
 
-            <Text style={styles.label}>XP reward</Text>
+            <Text style={styles.label}>Payout</Text>
             <View style={styles.wrap}>
               {XP_CHOICES.map((choice) => {
                 const selected = xp === choice;
